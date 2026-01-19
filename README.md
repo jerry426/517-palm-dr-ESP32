@@ -106,3 +106,53 @@ If the motor doesn't respond:
 - Motor NodeID (from label): `0CDD0E` (not needed in commands)
 - No RS-485 termination resistor required for short cable runs (< 10ft)
 - Commands work as broadcast (no specific addressing needed)
+
+## Advanced Troubleshooting with Oscilloscope
+
+If the motor doesn't respond despite correct commands and proper wiring, use an oscilloscope to verify the physical layer signals:
+
+### 1. Verify Baud Rate
+
+**Connect oscilloscope probe to RS-485 A or B line.**
+
+Measure the width of a single bit:
+- **4800 baud** = 208μs per bit (this is what works)
+- **9600 baud** = 104μs per bit (what technical support incorrectly states)
+
+**Compare waveforms:**
+- Capture signal from installer configuration tool (baseline)
+- Capture signal from ESPHome device
+- Verify bit timing matches exactly
+
+### 2. Check Parity Settings
+
+Count bits per frame:
+- Should be **10 bits total**: 8 data + 1 parity + 1 stop
+- Verify parity bit makes total number of 1's **odd** (ODD parity)
+
+### 3. Verify Signal Integrity
+
+Check for:
+- Clean square waves (not rounded or distorted)
+- Proper voltage levels (RS-485 differential: ±1.5V to ±6V)
+- No excessive noise or ringing
+- Consistent timing across entire frame
+
+### 4. Physical Layer vs Data Layer Analysis
+
+| Layer | What to Check | Common Issues |
+|-------|---------------|---------------|
+| **Application** | Command bytes match documentation | Usually correct |
+| **Data** | Hex sequences are valid | Usually correct |
+| **Physical** | Baud rate, parity, timing | **Most common failure point** |
+
+**This was the key breakthrough** - the sniffer showed identical bytes between installer and ESPHome, but the oscilloscope revealed the baud rate mismatch (9600 vs 4800).
+
+### 5. Common Oscilloscope Settings
+
+- **Timebase:** 100μs/div to 500μs/div
+- **Vertical:** 2V/div (differential probe) or 1V/div (single-ended)
+- **Trigger:** Rising edge on start bit
+- **Capture:** Single frame to analyze individual bits
+
+**Why this matters:** Even with perfect command bytes, mismatched physical layer settings (baud rate, parity) will cause the motor controller to reject or ignore the transmission entirely.
