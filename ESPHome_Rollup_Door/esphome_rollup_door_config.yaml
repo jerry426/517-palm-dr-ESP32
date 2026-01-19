@@ -1,0 +1,80 @@
+esphome:
+  name: rollup-door-controller
+  friendly_name: Roll-Up Door Controller
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+wifi:
+  ssid: "Serendipity_IoT"
+  password: "dzfkRg3w3hH8sfZ_r8zY"
+  manual_ip:
+    static_ip: 10.20.1.240
+    gateway: 10.20.20.1
+    subnet: 255.255.0.0
+
+api:
+  encryption:
+    key: "GosEhY54ZDe4R87wWuF/7+lh0y1/rm+CZnAaXeED4Ao="
+
+ota:
+  - platform: esphome
+    password: "517palmdr"
+
+logger:
+  level: DEBUG
+  baud_rate: 115200
+
+uart:
+  id: rs485_uart
+  tx_pin: GPIO16
+  rx_pin: GPIO17
+  baud_rate: 4800
+  data_bits: 8
+  parity: ODD
+  stop_bits: 1
+
+cover:
+  - platform: template
+    name: "Roll-Up Door"
+    id: rollup_door
+
+    close_action:
+      - logger.log: "Sending DOWN command"
+      - lambda: |-
+          uint8_t data[] = {
+              0xFC, 0x70, 0x08, 0x00, 0x02, 0x00, 0xF5, 0x1F,
+              0xF3, 0xFF, 0xFF, 0xFF, 0x00, 0x06, 0x7A
+          };
+          id(rs485_uart).write_array(data, sizeof(data));
+      - logger.log: "DOWN command sent"
+
+    open_action:
+      - logger.log: "Sending UP command"
+      - lambda: |-
+          uint8_t data[] = {
+              0xFC, 0x70, 0x08, 0x00, 0x02, 0x00, 0xF5, 0x1F,
+              0xF3, 0xFE, 0xFF, 0xFF, 0x00, 0x06, 0x79
+          };
+          id(rs485_uart).write_array(data, sizeof(data));
+      - logger.log: "UP command sent"
+
+    stop_action:
+      - logger.log: "Sending STOP command"
+      - lambda: |-
+          uint8_t data[] = {
+              0xFD, 0x73, 0x08, 0x00, 0x02, 0x00, 0xF5, 0x1F,
+              0xF3, 0x00, 0x03, 0x81
+          };
+          id(rs485_uart).write_array(data, sizeof(data));
+      - logger.log: "STOP command sent"
+
+    optimistic: true
+    assumed_state: true
+    has_position: false
+    device_class: shutter
+
+status_led:
+  pin: GPIO2
